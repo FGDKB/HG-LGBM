@@ -34,10 +34,7 @@ The HG-LGBM model consists of several key components:
 python main.py
 
 # Train with custom parameters
-python main.py --dataset HMDAD --hidden_channels 512 --num_heads 8 --num_layers 6 --epochs 200
-
-# Calculate importance scores between microbes and diseases
-python calculate_importance.py --dataset HMDAD
+python main.py --dataset HMDAD
 ```
 
 ### Analyzing Microbe-Disease Importance
