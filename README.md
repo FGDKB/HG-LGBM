@@ -37,20 +37,6 @@ python main.py
 python main.py --dataset HMDAD
 ```
 
-### Analyzing Microbe-Disease Importance
-
-To analyze the importance scores between microbes and diseases:
-
-```bash
-python calculate_importance.py --dataset HMDAD
-```
-
-This will generate multiple CSV files in the `[dataset]/importance_results/` directory:
-- `all_md_importance_scores.csv`: All microbe-disease association scores
-- `top_microbe_disease_associations.csv`: Top-ranked associations
-- `top_microbes_per_disease.csv`: Most relevant microbes for each disease
-- `top_diseases_per_microbe.csv`: Most relevant diseases for each microbe
-
 ## Datasets
 
 The model supports multiple datasets:
