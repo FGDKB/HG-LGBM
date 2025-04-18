@@ -16,21 +16,21 @@ from models import ModelSelector, HGT
 def get_parser():
     parser = argparse.ArgumentParser(description='HG-LGBM')
 
-    parser.add_argument('--dataset', type=str, default="HMDAD", help='使用的数据集名称')
-    parser.add_argument('--save_file', type=str, default='HMDAD/save_file_HMDAD/', help='结果保存路径')
+    parser.add_argument('--dataset', type=str, default="HMDAD", help='Dataset name to use')
+    parser.add_argument('--save_file', type=str, default='HMDAD/save_file_HMDAD/', help='Result save path')
 
-    # 模型参数
-    parser.add_argument('--hidden_channels', type=int, default=512, help='隐藏层通道数')
-    parser.add_argument('--num_heads', type=int, default=6, help='注意力头数量')
-    parser.add_argument('--num_layers', type=int, default=6, help='层数')
-    parser.add_argument('--self_encode_len', type=int, default=256, help='自编码长度')
+    # Model parameters
+    parser.add_argument('--hidden_channels', type=int, default=512, help='Number of hidden channels')
+    parser.add_argument('--num_heads', type=int, default=6, help='Number of attention heads')
+    parser.add_argument('--num_layers', type=int, default=6, help='Number of layers')
+    parser.add_argument('--self_encode_len', type=int, default=256, help='Self-encoding length')
 
-    # 训练参数
-    parser.add_argument('--kfold', type=int, default=5, help='交叉验证折数')
-    parser.add_argument('--epochs', type=int, default=500, help='训练轮数')
-    parser.add_argument('--print_epoch', type=int, default=20, help='打印频率')
-    parser.add_argument('--globel_random', type=int, default=222, help='全局随机种子')
-    parser.add_argument('--maskMDI', action='store_true', help='是否遮蔽MDI')
+    # Training parameters
+    parser.add_argument('--kfold', type=int, default=5, help='Number of cross-validation folds')
+    parser.add_argument('--epochs', type=int, default=500, help='Number of training epochs')
+    parser.add_argument('--print_epoch', type=int, default=20, help='Print frequency')
+    parser.add_argument('--globel_random', type=int, default=222, help='Global random seed')
+    parser.add_argument('--maskMDI', action='store_true', help='Whether to mask MDI')
 
     return parser
 
@@ -46,7 +46,7 @@ def set_seed(seed):
 
 
 
-# 配置类
+# Configuration class
 class Config:
     def __init__(self):
         parser = get_parser()
@@ -104,15 +104,15 @@ if __name__ == '__main__':
 
     for i in range(1, 6):
         kf = i
-        file_name = f'./HMDAD/mid_data_HMDAD/{6}nl{kf}kf_best_cat_data.dict'
+        file_name = f'data/model_{kf}_fold.dict'
 
-        # 等待文件存在
+        # Wait for file to exist
         while not os.path.exists(file_name):
             time.sleep(1)
 
         data_load = joblib.load(file_name)
 
-        # 模型选择和训练
+        # Model selection and training
         selector = ModelSelector()
         X_train, X_test = data_load['train_data'], data_load['test_data']
         y_train, y_test = data_load['y_train'], data_load['y_test']
@@ -140,4 +140,3 @@ if __name__ == '__main__':
     avg_perf_path = 'results/average_performance.pkl'
     with open(avg_perf_path, 'wb') as f:
         pickle.dump(avg_performance, f)
-

@@ -81,9 +81,9 @@ def CV_train(param, args_tuple=()):
     all_y_true = []
     all_y_pred = []
     for train_idx, test_idx in kf.split(idx):
-        print(f'正在运行第{k_number}折, 共{k_fold}折...')
+        print(f'Running fold {k_number} of {k_fold}...')
         auc_idx, auc_name = train_model(data, y, edg_index_all, train_idx, test_idx, param, k_number)
-        with open(f'./HMDAD/mid_data_HMDAD/{6}nl{k_number}kf_best_cat_data.dict', 'rb') as f:
+        with open(f'data/model_{k_number}_fold.dict', 'rb') as f:
             data_dict = joblib.load(f)
         all_y_true.extend(data_dict['y_test'])
         all_y_pred.extend(data_dict['y_test_pred'])

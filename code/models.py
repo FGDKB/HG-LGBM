@@ -136,10 +136,10 @@ class HGT(torch.nn.Module):
         m_index = edge_index[0]
         d_index = edge_index[1]
 
-        Em = self.dropout(x_dict['n1'])
-        Ed = self.dropout(x_dict['n2'])
+        microbe = self.dropout(x_dict['n1'])
+        disease = self.dropout(x_dict['n2'])
 
-        scores = Em @ Ed.t()
+        scores = microbe @ disease.t()
         predictions = scores[m_index, d_index].unsqueeze(-1)
 
         return predictions
@@ -167,7 +167,7 @@ class HGT(torch.nn.Module):
             out = self(self.data_temp, self.edg_index_all)
             y_test_pred = out[self.test_idx].cpu().numpy().flatten()
         
-        # 准备数据
+        
         train_data = {
             'features': train_data_concat,
             'labels': self.y[self.train_idx].cpu().numpy()
@@ -180,12 +180,11 @@ class HGT(torch.nn.Module):
         }
         
         node_embeddings = {
-            'Em': self.save_data['n1'].cpu().numpy(),
-            'Ed': self.save_data['n2'].cpu().numpy()
+            'microbe': self.save_data['n1'].cpu().numpy(),
+            'disease': self.save_data['n2'].cpu().numpy()
         }
         
-        # 保存所有数据到文件
-        output_path = f'HMDAD/mid_data_HMDAD/{6}nl{kf}kf_best_cat_data.dict'
+        output_path = f'data/model_{kf}_fold.dict'
         save_data = {
             'train_data': train_data['features'],
             'test_data': test_data['features'],
@@ -239,7 +238,7 @@ class ModelSelector:
         results = {}
 
         for model_name, model in models_dict.items():
-            print(f"训练模型: {model_name}...")
+            print(f"Training model: {model_name}...")
             param_grid = self.param_grids.get(model_name, {})
             grid = ParameterGrid(param_grid)
 
@@ -249,7 +248,7 @@ class ModelSelector:
             best_model = None
             best_time = float('inf')
             for params in grid:
-                print(f"测试参数: {params}")
+                print(f"Testing parameters: {params}")
                 model.set_params(**params)
 
 
@@ -263,8 +262,8 @@ class ModelSelector:
                 metrics_values, metrics_names = get_metrics(y_test, y_score)
                 metrics_dict = dict(zip(metrics_names, metrics_values))
 
-                print(f"{model_name}模型在参数{params}下的AUC: {auc:.4f}")
-                print(f"详细评估指标:")
+                print(f"{model_name} model with parameters {params} AUC: {auc:.4f}")
+                print(f"Detailed evaluation metrics:")
                 print(f"AUC: {metrics_dict['auc']:.4f}")
                 print(f"AUPR: {metrics_dict['prc']:.4f}")
                 print(f"F1-Score: {metrics_dict['f1_score']:.4f}")
@@ -272,7 +271,7 @@ class ModelSelector:
                 print(f"Recall: {metrics_dict['recall']:.4f}")
                 print(f"Specificity: {metrics_dict['specificity']:.4f}")
                 print(f"Precision: {metrics_dict['precision']:.4f}")
-                print(f"运行时间: {metrics_dict['run_time']:.4f} 秒")
+                print(f"Runtime: {metrics_dict['run_time']:.4f} seconds")
 
                 if auc > best_score:
                     best_score = auc
@@ -295,16 +294,16 @@ class ModelSelector:
             }
 
             if best_metrics:
-                print(f"\n{model_name}最佳AUC: {best_score:.4f}")
-                print(f"最佳参数: {best_params}")
-                print(f"最佳运行时间: {best_time:.4f} 秒")
+                print(f"\n{model_name} best AUC: {best_score:.4f}")
+                print(f"Best parameters: {best_params}")
+                print(f"Best runtime: {best_time:.4f} seconds")
 
                 try:
                     plot_curves(best_metrics['y_true'], best_metrics['y_score'],
                                 f"curves/{model_name}_roc_pr_curves.png")
-                    print(f"曲线已保存到curves/{model_name}_roc_pr_curves.png")
+                    print(f"Curves saved to curves/{model_name}_roc_pr_curves.png")
                 except Exception as e:
-                    print(f"绘制曲线时出错: {e}")
+                    print(f"Error when plotting curves: {e}")
 
             results[model_name] = result_dict
 
@@ -350,7 +349,7 @@ class ModelSelector:
             average_results[model_name] = avg_metrics
 
         for model_name, metrics in average_results.items():
-            print(f"\n{model_name}模型平均性能:")
+            print(f"\n{model_name} model average performance:")
             for key, value in metrics.items():
                 if '_mean' in key:
                     metric_name = key.replace('_mean', '')
