@@ -109,7 +109,7 @@ class HGT(torch.nn.Module):
         self.save_data = None
         self.edge_index = None
         self.data_temp = None
-        self.edg_index_all = None
+        self.edge_index_all = None
 
         self.best_auc = 0.0
         self.param = None
@@ -136,8 +136,8 @@ class HGT(torch.nn.Module):
         m_index = edge_index[0]
         d_index = edge_index[1]
 
-        microbe = self.dropout(x_dict['n1'])
-        disease = self.dropout(x_dict['n2'])
+        microbe = self.dropout(x_dict['microbe'])
+        disease = self.dropout(x_dict['disease'])
 
         scores = microbe @ disease.t()
         predictions = scores[m_index, d_index].unsqueeze(-1)
@@ -156,7 +156,7 @@ class HGT(torch.nn.Module):
     
     def _process_and_save_features(self, kf):
         data_concat = torch.concat(
-            (self.save_data['n1'][self.edge_index[0]], self.save_data['n2'][self.edge_index[1]]),
+            (self.save_data['disease'][self.edge_index[0]], self.save_data['microbe'][self.edge_index[1]]),
             dim=1
         ).cpu().numpy()
         
@@ -164,7 +164,7 @@ class HGT(torch.nn.Module):
         test_data_concat = data_concat[self.test_idx]
         
         with torch.no_grad():
-            out = self(self.data_temp, self.edg_index_all)
+            out = self(self.data_temp, self.edge_index_all)
             y_test_pred = out[self.test_idx].cpu().numpy().flatten()
         
         
@@ -180,8 +180,8 @@ class HGT(torch.nn.Module):
         }
         
         node_embeddings = {
-            'microbe': self.save_data['n1'].cpu().numpy(),
-            'disease': self.save_data['n2'].cpu().numpy()
+            'microbe': self.save_data['microbe'].cpu().numpy(),
+            'disease': self.save_data['disease'].cpu().numpy()
         }
         
         output_path = f'data/model_{kf}_fold.dict'

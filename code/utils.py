@@ -61,24 +61,24 @@ def get_metrics(real_score, predict_score):
 
     fpr = FP / (FP + TN)
     tpr = TP / (TP + FN)
-    ROC_dot_matrix = np.mat(sorted(np.column_stack((fpr, tpr)).tolist())).T
-    ROC_dot_matrix.T[0] = [0, 0]
-    ROC_dot_matrix = np.c_[ROC_dot_matrix, [1, 1]]
+    roc_dot_matrix = np.mat(sorted(np.column_stack((fpr, tpr)).tolist())).T
+    roc_dot_matrix.T[0] = [0, 0]
+    roc_dot_matrix = np.c_[roc_dot_matrix, [1, 1]]
 
-    x_ROC = ROC_dot_matrix[0].T
-    y_ROC = ROC_dot_matrix[1].T
-    auc = 0.5 * (x_ROC[1:] - x_ROC[:-1]).T * (y_ROC[:-1] + y_ROC[1:])
+    x_roc = roc_dot_matrix[0].T
+    y_roc = roc_dot_matrix[1].T
+    auc = 0.5 * (x_roc[1:] - x_roc[:-1]).T * (y_roc[:-1] + y_roc[1:])
 
     recall_list = tpr
     precision_list = TP / (TP + FP)
-    PR_dot_matrix = np.mat(sorted(np.column_stack(
+    pr_dot_matrix = np.mat(sorted(np.column_stack(
         (recall_list, precision_list)).tolist())).T
-    PR_dot_matrix.T[0] = [0, 1]
-    PR_dot_matrix = np.c_[PR_dot_matrix, [1, 0]]
+    pr_dot_matrix.T[0] = [0, 1]
+    pr_dot_matrix = np.c_[pr_dot_matrix, [1, 0]]
 
-    x_PR = PR_dot_matrix[0].T
-    y_PR = PR_dot_matrix[1].T
-    aupr = 0.5 * (x_PR[1:] - x_PR[:-1]).T * (y_PR[:-1] + y_PR[1:])
+    x_pr = pr_dot_matrix[0].T
+    y_pr = pr_dot_matrix[1].T
+    aupr = 0.5 * (x_pr[1:] - x_pr[:-1]).T * (y_pr[:-1] + y_pr[1:])
 
     f1_score_list = 2 * TP / (len(real_score.T) + TP - TN)
     accuracy_list = (TP + TN) / len(real_score.T)
@@ -105,29 +105,29 @@ def get_name_list(file_path):
         return [line.strip() for line in f]
 
 
-def get_Hdata(x1, x2, e, e_matrix, ew=None):
-    x1 = x1.to(device)
-    x2 = x2.to(device)
-    e = e.to(device)
+def get_hetero_data(disease_features, microbe_features, edge_index, adjacency_matrix, edge_weight=None):
+    disease_features = disease_features.to(device)
+    microbe_features = microbe_features.to(device)
+    edge_index = edge_index.to(device)
     meta_dict = {
-        'n1': {'num_nodes': x1.shape[0], 'num_features': x1.shape[1]},
-        'n2': {'num_nodes': x2.shape[0], 'num_features': x2.shape[1]},
-        ('n1', 'e1', 'n2'): {'edge_index': e, 'edge_weight': ew},
-        ('n2', 'e1', 'n1'): {'edge_index': torch.flip(e, (0,)), 'edge_weight': ew},
+        'disease': {'num_nodes': disease_features.shape[0], 'num_features': disease_features.shape[1]},
+        'microbe': {'num_nodes': microbe_features.shape[0], 'num_features': microbe_features.shape[1]},
+        ('disease', 'e1', 'microbe'): {'edge_index': edge_index, 'edge_weight': edge_weight},
+        ('microbe', 'e1', 'disease'): {'edge_index': torch.flip(edge_index, (0,)), 'edge_weight': edge_weight},
     }
 
     data = HeteroData(meta_dict)
-    data['n1'].x = x1
-    data['n2'].x = x2
-    data[('n1', 'e1', 'n2')].edge_index = e
-    data[('n2', 'e1', 'n1')].edge_index = torch.flip(e, (0,))
+    data['disease'].x = disease_features
+    data['microbe'].x = microbe_features
+    data[('disease', 'e1', 'microbe')].edge_index = edge_index
+    data[('microbe', 'e1', 'disease')].edge_index = torch.flip(edge_index, (0,))
 
     data['x_dict'] = {ntype: data[ntype].x for ntype in data.node_types}
     edge_index_dict = {}
     for etype in data.edge_types:
         edge_index_dict[etype] = data[etype].edge_index
     data['edge_dict'] = edge_index_dict
-    data['edge_matrix'] = e_matrix
+    data['edge_matrix'] = adjacency_matrix
 
     return data.to(device)
 
@@ -156,15 +156,15 @@ def get_data(params):
     selected_neg_edge_indices = torch.randint(high=edge_index_neg.shape[1], size=(num_pos_edges_number,),
                                                dtype=torch.long)
     edge_index_neg_selected = edge_index_neg[:, selected_neg_edge_indices]
-    edg_index_all = torch.cat((edge_index_pos, edge_index_neg_selected), dim=1)
+    edge_index_all = torch.cat((edge_index_pos, edge_index_neg_selected), dim=1)
     y = torch.cat((torch.ones((edge_index_pos.shape[1], 1)),
                    torch.zeros((edge_index_neg_selected.shape[1], 1))), dim=0)
 
-    x1 = torch.tensor(disease_similarity, dtype=torch.float32)
-    x2 = torch.tensor(microbe_similarity, dtype=torch.float32)
+    disease_features = torch.tensor(disease_similarity, dtype=torch.float32)
+    microbe_features = torch.tensor(microbe_similarity, dtype=torch.float32)
 
-    data = get_Hdata(x1, x2, edge_index_pos, adj_matrix)
-    return data, y, edg_index_all
+    data = get_hetero_data(disease_features, microbe_features, edge_index_pos, adj_matrix)
+    return data, y, edge_index_all
 
 
 def plot_multiple_curves(fold_results, model_name='lightgbm', save_path='curves/average_roc_pr_curves.png'):

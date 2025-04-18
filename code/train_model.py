@@ -21,14 +21,14 @@ def save_kf_auc_list_to_txt(kf_auc_list, filename="kf_auc_list.txt"):
                     f.write("Scalar: " + str(entry) + "\n")
             f.write("\n")
 
-def train_model(data,y, edg_index_all, train_idx, test_idx, param, k_number):
+def train_model(data,y, edge_index_all, train_idx, test_idx, param, k_number):
     hidden_channels, num_heads, num_layers = param.hidden_channels, param.num_heads, param.num_layers
     epoch_param = param.epochs
     model = HGT(hidden_channels, num_heads=num_heads, num_layers=num_layers, data=data).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0002)
     data_temp = copy.deepcopy(data)
     model.data_temp = data_temp
-    model.edg_index_all = edg_index_all
+    model.edge_index_all = edge_index_all
     auc_list = []
     model.train()
     model.param = param
@@ -39,7 +39,7 @@ def train_model(data,y, edg_index_all, train_idx, test_idx, param, k_number):
         optimizer.zero_grad()
         model.pkl_ctl = 'train'
         y_train = y[train_idx].to('cpu').detach().numpy()
-        out = model(data_temp, edge_index=edg_index_all.to(device))
+        out = model(data_temp, edge_index=edge_index_all.to(device))
         loss = F.binary_cross_entropy_with_logits(out[train_idx].to(device), y[train_idx].to(device))
         loss.backward()
         optimizer.step()
@@ -48,7 +48,7 @@ def train_model(data,y, edg_index_all, train_idx, test_idx, param, k_number):
             model.pkl_ctl='test'
             model.eval()
             with torch.no_grad():
-                out = model(data_temp, edge_index=edg_index_all)
+                out = model(data_temp, edge_index=edge_index_all)
                 out_pred_s = out[test_idx].to('cpu').detach().numpy()
                 out_pred = out_pred_s
                 y_true = y[test_idx].to('cpu').detach().numpy()
@@ -72,7 +72,7 @@ def train_model(data,y, edg_index_all, train_idx, test_idx, param, k_number):
     return auc_list, auc_name
 
 def CV_train(param, args_tuple=()):
-    data, y, edg_index_all = args_tuple
+    data, y, edge_index_all = args_tuple
     idx = np.arange(y.shape[0])
     k_number = 1
     k_fold = param.kfold
@@ -82,7 +82,7 @@ def CV_train(param, args_tuple=()):
     all_y_pred = []
     for train_idx, test_idx in kf.split(idx):
         print(f'Running fold {k_number} of {k_fold}...')
-        auc_idx, auc_name = train_model(data, y, edg_index_all, train_idx, test_idx, param, k_number)
+        auc_idx, auc_name = train_model(data, y, edge_index_all, train_idx, test_idx, param, k_number)
         with open(f'data/model_{k_number}_fold.dict', 'rb') as f:
             data_dict = joblib.load(f)
         all_y_true.extend(data_dict['y_test'])
